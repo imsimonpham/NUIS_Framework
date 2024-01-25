@@ -1,8 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Game.Scripts.LiveObjects;
 using Cinemachine;
+using UnityEngine.InputSystem;
 
 namespace Game.Scripts.Player
 {
@@ -21,6 +20,11 @@ namespace Game.Scripts.Player
         private CinemachineVirtualCamera _followCam;
         [SerializeField]
         private GameObject _model;
+
+        //New Input System
+        private PlayerInputActions _input;
+        [SerializeField]
+        private float _rotationSpeed = 5.0f;
 
 
         private void OnEnable()
@@ -46,6 +50,9 @@ namespace Game.Scripts.Player
 
             if (_anim == null)
                 Debug.Log("Failed to connect the Animator");
+
+            _input = new PlayerInputActions();
+            _input.Player.Enable();
         }
 
         private void Update()
@@ -58,17 +65,23 @@ namespace Game.Scripts.Player
         private void CalcutateMovement()
         {
             _playerGrounded = _controller.isGrounded;
-            float h = Input.GetAxisRaw("Horizontal");
+
+            //Old Unity Input system
+            /* float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");
-
             transform.Rotate(transform.up, h);
+            var direction = transform.forward * v;*/
 
-            var direction = transform.forward * v;
+
+            //New Unity Input System starts
+            var move = _input.Player.Movement.ReadValue<Vector2>();
+            transform.Rotate(transform.up, move.x * _rotationSpeed);
+            var direction = transform.forward * move.y;
+            //New Unity Input System ends
+
             var velocity = direction * _speed;
 
-
             _anim.SetFloat("Speed", Mathf.Abs(velocity.magnitude));
-
 
             if (_playerGrounded)
                 velocity.y = 0f;
@@ -77,8 +90,7 @@ namespace Game.Scripts.Player
                 velocity.y += -20f * Time.deltaTime;
             }
             
-            _controller.Move(velocity * Time.deltaTime);                      
-
+            _controller.Move(velocity * Time.deltaTime);
         }
 
         private void InteractableZone_onZoneInteractionComplete(InteractableZone zone)
@@ -128,7 +140,6 @@ namespace Game.Scripts.Player
             Drone.OnEnterFlightMode -= ReleasePlayerControl;
             Drone.onExitFlightmode -= ReturnPlayerControl;
         }
-
     }
 }
 
